@@ -61,8 +61,9 @@ impl Hand {
                 .map(|card| *card)
                 .collect::<Vec<Standard_Card>>()
         };
-        let same_suit_winners =
-            Box::new(|card: &&Standard_Card| card.get_suit() == leader.get_suit());
+        let same_suit_winners = Box::new(|card: &&Standard_Card| {
+            card.get_suit() == leader.get_suit() && card.get_rank() > winner.get_rank()
+        });
         let same_suit_losers =
             Box::new(|card: &&Standard_Card| card.get_suit() == leader.get_suit());
         let spades = Box::new(|card: &&Standard_Card| {
@@ -90,5 +91,33 @@ impl Hand {
 impl PartialEq for Card {
     fn eq(&self, other: &Self) -> bool {
         self.card == other.card && self.playable == other.playable
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use standard_deck::{Card, Rank, Suit};
+
+    use crate::{Hand, Trick};
+
+    #[test]
+    fn get_moves_works_for_basic_case() {
+        let lead: usize = 0;
+        let mut trick = Trick::new(0).unwrap();
+        assert!(trick
+            .add(&Card::new(&Rank::Two, &Suit::Clubs), lead)
+            .is_ok());
+        let mut hand = Hand::new();
+        for rank in Rank::iter() {
+            assert!(hand.add(&Card::new(&rank, &Suit::Clubs)).is_ok());
+        }
+        let moves = hand.get_moves(&trick);
+        assert_eq!(moves.unwrap().len(), 12);
+
+        assert!(trick
+            .add(&Card::new(&Rank::King, &Suit::Clubs), lead + 1)
+            .is_ok());
+        let moves = hand.get_moves(&trick);
+        assert_eq!(moves.unwrap().len(), 1);
     }
 }
